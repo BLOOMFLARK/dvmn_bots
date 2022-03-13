@@ -6,9 +6,10 @@ Can be found at t.me/DvmnFirstBot.
 Notifies when submtitted task is checked by a teacher.
 
 Linux launch:
+
 ```bash
 
-$ python3 notification_bot/notification_bot.py
+$ pip3 install -r requirements.txt & python3 notification_bot/notification_bot.py
 
 starts infinite loop. Bot sends messages.
 
