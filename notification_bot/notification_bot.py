@@ -2,6 +2,7 @@ import requests
 import telegram
 from dotenv import dotenv_values
 import os
+import logging
 from time import sleep
 
 
@@ -17,36 +18,61 @@ MSG_HEADER_TEMPLATE = "У вас проверили работу {}\n"
 SUCCESS_MSG_BODY = "Преподавателю все понравилось, можно приступать к следующему уроку\n"
 FAIL_MSG_BODY = "К сожалению, в работе нашлись ошибки\n"
 
-SECONDS_TO_SLEEP = 120
+SECONDS_TO_SLEEP = 5
+RESPONSE_TIMEOUT = 30
+MAX_RETRIES = 5
+
+logging.basicConfig(filename='logs/bot.log', level=logging.DEBUG)
+
+def request_user_reviews(params, url=LONG_POLLING_USER_REVIEWS_URL, headers=AUTH_HEADER, timeout=RESPONSE_TIMEOUT):
+
+    logging.info(f"Sending request to url={LONG_POLLING_USER_REVIEWS_URL} with params={params}")
+    response = requests.get(LONG_POLLING_USER_REVIEWS_URL,
+                            headers=AUTH_HEADER,
+                            params=params,
+                            timeout=RESPONSE_TIMEOUT)
+    response.raise_for_status()
+    return response.json()
 
 
 def main():
+    logging.info("Bot start")
+    retries = MAX_RETRIES
     bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
 
     current_request_timestamp = None
 
     while True:
-
         try:
-            params = {'timestamp': current_request_timestamp}
-            response = requests.get(LONG_POLLING_USER_REVIEWS_URL,
-                                    headers=AUTH_HEADER,
-                                    params=params,
-                                    timeout=5)
-        except requests.exceptions.ReadTimeout:
-            continue
-        except requests.exceptions.ConnectionError:
+            response = request_user_reviews(params={'timestamp': current_request_timestamp})
+        except requests.exceptions.ReadTimeout as timeout_error:
+            logging.error(timeout_error)
             sleep(SECONDS_TO_SLEEP)
             continue
-        else:
-            # Если смогли получить ответ на GET запрос, парсим ответ.
-            decoded_response = response.json()
 
-            if decoded_response.get('status', '') == 'timeout':
-                current_request_timestamp = decoded_response.get('timestamp_to_request')
+        except requests.exceptions.ConnectionError as conn_error:
+            logging.error(conn_error)
+            sleep(SECONDS_TO_SLEEP)
+            continue
+
+        except requests.exceptions.HTTPError as http_error:
+            # По KISS принципу просто выведем traceback
+            retries -= 1
+            msg = f"ERROR: {http_error}, {retries} retries left..."
+            logging.error(msg)
+            bot.send_message(text=msg, chat_id=TELEGRAM_CHAT_ID)
+            if not retries:
+                break
+            sleep(SECONDS_TO_SLEEP)
+
+        else:
+            if 'timeout' in response.get('status', ''):
+                current_request_timestamp = response.get('timestamp_to_request')
+                logging.info(f"Got timestamp from response: {current_request_timestamp}")
             else:
                 # Список проверок, которые отозваны
-                attempts = decoded_response.get('new_attempts', [])
+                attempts = response.get('new_attempts', [])
+                logging.info(f"Got attempts from: {attempts}")
 
                 for attempt in attempts:
                     lesson_title = attempt.get('lesson_title')
@@ -59,6 +85,7 @@ def main():
                     else:
                         msg = f"{msg_header}{FAIL_MSG_BODY}"
                     msg += lesson_url
+                    logging.info(f"Bot send message={msg} to client={TELEGRAM_CHAT_ID}")
                     bot.send_message(text=msg, chat_id=TELEGRAM_CHAT_ID)
 
 if __name__ == '__main__':
