@@ -22,7 +22,7 @@ SECONDS_TO_SLEEP = 5
 RESPONSE_TIMEOUT = 30
 MAX_RETRIES = 5
 
-logging.basicConfig(filename='logs/bot.log', level=logging.DEBUG)
+logger = logging.getLogger(__file__)
 
 def request_user_reviews(params, url=LONG_POLLING_USER_REVIEWS_URL, headers=AUTH_HEADER, timeout=RESPONSE_TIMEOUT):
 
@@ -44,10 +44,9 @@ def main():
 
     while True:
         try:
-            response = request_user_reviews(params={'timestamp': current_request_timestamp})
+            user_reviews = request_user_reviews(params={'timestamp': current_request_timestamp})
         except requests.exceptions.ReadTimeout as timeout_error:
             logging.error(timeout_error)
-            sleep(SECONDS_TO_SLEEP)
             continue
 
         except requests.exceptions.ConnectionError as conn_error:
@@ -66,12 +65,12 @@ def main():
             sleep(SECONDS_TO_SLEEP)
 
         else:
-            if 'timeout' in response.get('status', ''):
-                current_request_timestamp = response.get('timestamp_to_request')
+            if 'timeout' in user_reviews.get('status', ''):
+                current_request_timestamp = user_reviews.get('timestamp_to_request')
                 logging.info(f"Got timestamp from response: {current_request_timestamp}")
             else:
                 # Список проверок, которые отозваны
-                attempts = response.get('new_attempts', [])
+                attempts = user_reviews.get('new_attempts', [])
                 logging.info(f"Got attempts from: {attempts}")
 
                 for attempt in attempts:
@@ -89,4 +88,5 @@ def main():
                     bot.send_message(text=msg, chat_id=TELEGRAM_CHAT_ID)
 
 if __name__ == '__main__':
+    logging.basicConfig(filename='logs/bot.log', level=logging.DEBUG)
     main()
