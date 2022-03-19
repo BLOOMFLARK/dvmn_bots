@@ -34,7 +34,7 @@ def request_user_reviews(params, url=LONG_POLLING_USER_REVIEWS_URL, headers=AUTH
 
 
 def main():
-    logging.info("Bot start")
+    logging.warning("Bot start")
     retries = MAX_RETRIES
     bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
 
