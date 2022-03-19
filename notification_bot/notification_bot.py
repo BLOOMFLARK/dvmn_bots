@@ -1,14 +1,12 @@
 import requests
 import telegram
-from dotenv import dotenv_values
 import os
 import logging
 from time import sleep
 
 
-ENV_CONFIG = dotenv_values(".env")
-DVMN_TOKEN = ENV_CONFIG["DVMN_TOKEN"]
-TELEGRAM_BOT_TOKEN = ENV_CONFIG["TELEGRAM_BOT_TOKEN"]
+DVMN_TOKEN = os.environ['DVMN_TOKEN']
+TELEGRAM_BOT_TOKEN = os.envirion["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
 
 LONG_POLLING_USER_REVIEWS_URL = "https://dvmn.org/api/long_polling/"
