@@ -6,7 +6,7 @@ from time import sleep
 
 
 DVMN_TOKEN = os.environ['DVMN_TOKEN']
-TELEGRAM_BOT_TOKEN = os.envirion["TELEGRAM_BOT_TOKEN"]
+TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
 
 LONG_POLLING_USER_REVIEWS_URL = "https://dvmn.org/api/long_polling/"
