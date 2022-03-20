@@ -7,7 +7,7 @@ from time import sleep
 
 DVMN_TOKEN = os.environ['DVMN_TOKEN']
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
+ADMIN_TG_CHAT_ID = os.environ['ADMIN_TG_CHAT_ID']
 
 LONG_POLLING_USER_REVIEWS_URL = "https://dvmn.org/api/long_polling/"
 AUTH_HEADER = {'Authorization': f'Token {DVMN_TOKEN}'}
@@ -22,6 +22,18 @@ MAX_RETRIES = 5
 
 logger = logging.getLogger(__file__)
 
+
+class TelegramLogsHandler(logging.Handler):
+
+    def __init__(self, tg_bot):
+        super().__init__()
+        self.bot = tg_bot
+
+    def emit(self, record):
+        log_msg = self.format(record)
+        self.bot.send_message(text=log_msg, chat_id=ADMIN_TG_CHAT_ID)
+
+
 def request_user_reviews(params, url=LONG_POLLING_USER_REVIEWS_URL, headers=AUTH_HEADER, timeout=RESPONSE_TIMEOUT):
 
     logging.info(f"Sending request to url={LONG_POLLING_USER_REVIEWS_URL} with params={params}")
@@ -34,9 +46,12 @@ def request_user_reviews(params, url=LONG_POLLING_USER_REVIEWS_URL, headers=AUTH
 
 
 def main():
-    logging.warning("Bot start")
+    logging.basicConfig(level=logging.DEBUG)
     retries = MAX_RETRIES
+
     bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
+    logger.addHandler(TelegramLogsHandler(bot))
+    logging.warning("Bot start")
 
     current_request_timestamp = None
 
@@ -55,9 +70,7 @@ def main():
         except requests.exceptions.HTTPError as http_error:
             # По KISS принципу просто выведем traceback
             retries -= 1
-            msg = f"ERROR: {http_error}, {retries} retries left..."
-            logging.error(msg)
-            bot.send_message(text=msg, chat_id=TELEGRAM_CHAT_ID)
+            logging.error(f"ERROR: {http_error}, {retries} retries left...")
             if not retries:
                 break
             sleep(SECONDS_TO_SLEEP)
@@ -82,9 +95,8 @@ def main():
                     else:
                         msg = f"{msg_header}{FAIL_MSG_BODY}"
                     msg += lesson_url
-                    logging.info(f"Bot send message={msg} to client={TELEGRAM_CHAT_ID}")
-                    bot.send_message(text=msg, chat_id=TELEGRAM_CHAT_ID)
+                    bot.send_message(text=msg, chat_id=ADMIN_TG_CHAT_ID)
+                    logging.info(f"Bot send message={msg} to client={ADMIN_TG_CHAT_ID}")
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
     main()
