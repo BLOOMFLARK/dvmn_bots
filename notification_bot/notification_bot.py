@@ -86,5 +86,5 @@ def main():
                     bot.send_message(text=msg, chat_id=TELEGRAM_CHAT_ID)
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='logs/bot.log', level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
     main()
