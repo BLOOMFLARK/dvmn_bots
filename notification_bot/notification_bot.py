@@ -36,7 +36,7 @@ class TelegramLogsHandler(logging.Handler):
 
 def request_user_reviews(params, url=LONG_POLLING_USER_REVIEWS_URL, headers=AUTH_HEADER, timeout=RESPONSE_TIMEOUT):
 
-    logging.info(f"Sending request to url={LONG_POLLING_USER_REVIEWS_URL} with params={params}")
+    logger.info(f"Sending request to url={LONG_POLLING_USER_REVIEWS_URL} with params={params}")
     response = requests.get(LONG_POLLING_USER_REVIEWS_URL,
                             headers=AUTH_HEADER,
                             params=params,
@@ -46,12 +46,12 @@ def request_user_reviews(params, url=LONG_POLLING_USER_REVIEWS_URL, headers=AUTH
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
     retries = MAX_RETRIES
 
     bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
     logger.addHandler(TelegramLogsHandler(bot))
-    logging.warning("Bot start")
+    logger.warning("Bot start")
 
     current_request_timestamp = None
 
@@ -59,7 +59,7 @@ def main():
         try:
             user_reviews = request_user_reviews(params={'timestamp': current_request_timestamp})
         except requests.exceptions.ReadTimeout as timeout_error:
-            logging.error(timeout_error)
+            logger.error(timeout_error)
             continue
 
         except requests.exceptions.ConnectionError as conn_error:
@@ -78,11 +78,11 @@ def main():
         else:
             if 'timeout' in user_reviews.get('status', ''):
                 current_request_timestamp = user_reviews.get('timestamp_to_request')
-                logging.info(f"Got timestamp from response: {current_request_timestamp}")
+                logger.info(f"Got timestamp from response: {current_request_timestamp}")
             else:
                 # Список проверок, которые отозваны
                 attempts = user_reviews.get('new_attempts', [])
-                logging.info(f"Got attempts from: {attempts}")
+                logger.info(f"Got attempts from: {attempts}")
 
                 for attempt in attempts:
                     lesson_title = attempt.get('lesson_title')
@@ -96,7 +96,7 @@ def main():
                         msg = f"{msg_header}{FAIL_MSG_BODY}"
                     msg += lesson_url
                     bot.send_message(text=msg, chat_id=ADMIN_TG_CHAT_ID)
-                    logging.info(f"Bot send message={msg} to client={ADMIN_TG_CHAT_ID}")
+                    logger.info(f"Bot send message={msg} to client={ADMIN_TG_CHAT_ID}")
 
 if __name__ == '__main__':
     main()
