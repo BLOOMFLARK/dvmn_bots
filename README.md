@@ -2,7 +2,7 @@
 This repository is for telegram bots from [this site](https://dvmn.org/modules/chat-bots/)
 
 # 1. NotificationBot
-Can be found at (t.me/DvmnFirstBot).
+Can be found at [telegram](t.me/DvmnFirstBot).
 Notifies when submtitted task is checked by a teacher.
 
 **Example:**
