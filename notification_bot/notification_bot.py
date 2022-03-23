@@ -7,7 +7,7 @@ from time import sleep
 
 DVMN_TOKEN = os.environ['DVMN_TOKEN']
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-ADMIN_TG_CHAT_ID = os.environ['ADMIN_TG_CHAT_ID']
+TG_CHAT_ID = os.environ['TG_CHAT_ID']
 
 LONG_POLLING_USER_REVIEWS_URL = "https://dvmn.org/api/long_polling/"
 AUTH_HEADER = {'Authorization': f'Token {DVMN_TOKEN}'}
@@ -103,7 +103,7 @@ def main(chat_id, max_retries, tg_token, dvmn_url, headers, timeout, sleep_time,
                     logger.info(f"Bot send message={msg} to client={chat_id}")
 
 if __name__ == '__main__':
-    main(chat_id=ADMIN_TG_CHAT_ID,
+    main(chat_id=TG_CHAT_ID,
          max_retries=MAX_RETRIES,
          tg_token=TELEGRAM_BOT_TOKEN,
          sleep_time=SECONDS_TO_SLEEP, 
