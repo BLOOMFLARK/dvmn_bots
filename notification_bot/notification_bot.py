@@ -25,46 +25,50 @@ logger = logging.getLogger(__file__)
 
 class TelegramLogsHandler(logging.Handler):
 
-    def __init__(self, tg_bot):
+    def __init__(self, tg_bot, chat_id):
         super().__init__()
         self.bot = tg_bot
+        self.chat_id = chat_id
 
     def emit(self, record):
         log_msg = self.format(record)
-        self.bot.send_message(text=log_msg, chat_id=ADMIN_TG_CHAT_ID)
+        self.bot.send_message(text=log_msg, chat_id=self.chat_id)
 
 
-def request_user_reviews(params, url=LONG_POLLING_USER_REVIEWS_URL, headers=AUTH_HEADER, timeout=RESPONSE_TIMEOUT):
+def request_user_reviews(params, url, headers, timeout):
 
-    logger.info(f"Sending request to url={LONG_POLLING_USER_REVIEWS_URL} with params={params}")
-    response = requests.get(LONG_POLLING_USER_REVIEWS_URL,
-                            headers=AUTH_HEADER,
+    logger.info(f"Sending request to url={url} with params={params}")
+    response = requests.get(url,
+                            headers=headers,
                             params=params,
-                            timeout=RESPONSE_TIMEOUT)
+                            timeout=timeout)
     response.raise_for_status()
     return response.json()
 
 
-def main():
+def main(chat_id, max_retries, tg_token, dvmn_url, headers, timeout, sleep_time, msg_header_template, success_msg_body, fail_msg_body):
     logger.setLevel(logging.DEBUG)
-    retries = MAX_RETRIES
+    retries = max_retries
 
-    bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
-    logger.addHandler(TelegramLogsHandler(bot))
+    bot = telegram.Bot(token=tg_token)
+    logger.addHandler(TelegramLogsHandler(bot, chat_id))
     logger.warning("Bot start")
 
     current_request_timestamp = None
 
     while True:
         try:
-            user_reviews = request_user_reviews(params={'timestamp': current_request_timestamp})
+            user_reviews = request_user_reviews(url=dvmn_url,
+                                                headers=headers,
+                                                timeout=timeout,
+                                                params={'timestamp': current_request_timestamp})
         except requests.exceptions.ReadTimeout as timeout_error:
             logger.error(timeout_error)
             continue
 
         except requests.exceptions.ConnectionError as conn_error:
             logging.error(conn_error)
-            sleep(SECONDS_TO_SLEEP)
+            sleep(sleep_time)
             continue
 
         except requests.exceptions.HTTPError as http_error:
@@ -73,7 +77,7 @@ def main():
             logging.error(f"ERROR: {http_error}, {retries} retries left...")
             if not retries:
                 break
-            sleep(SECONDS_TO_SLEEP)
+            sleep(sleep_time)
 
         else:
             if 'timeout' in user_reviews.get('status', ''):
@@ -87,16 +91,25 @@ def main():
                 for attempt in attempts:
                     lesson_title = attempt.get('lesson_title')
                     task_success = not attempt.get('is_negative')
-                    msg_header = MSG_HEADER_TEMPLATE.format(lesson_title)
+                    msg_header = msg_header_template.format(lesson_title)
                     lesson_url = attempt.get('lesson_url')
                 
                     if task_success:
-                        msg = f"{msg_header}{SUCCESS_MSG_BODY}"
+                        msg = f"{msg_header}{success_msg_body}"
                     else:
-                        msg = f"{msg_header}{FAIL_MSG_BODY}"
+                        msg = f"{msg_header}{fail_msg_body}"
                     msg += lesson_url
-                    bot.send_message(text=msg, chat_id=ADMIN_TG_CHAT_ID)
-                    logger.info(f"Bot send message={msg} to client={ADMIN_TG_CHAT_ID}")
+                    bot.send_message(text=msg, chat_id=chat_id)
+                    logger.info(f"Bot send message={msg} to client={chat_id}")
 
 if __name__ == '__main__':
-    main()
+    main(chat_id=ADMIN_TG_CHAT_ID,
+         max_retries=MAX_RETRIES,
+         tg_token=TELEGRAM_BOT_TOKEN,
+         sleep_time=SECONDS_TO_SLEEP, 
+         msg_header_template=MSG_HEADER_TEMPLATE, 
+         success_msg_body=SUCCESS_MSG_BODY,
+         dvmn_url=LONG_POLLING_USER_REVIEWS_URL,
+         headers=AUTH_HEADER,
+         timeout=RESPONSE_TIMEOUT,
+         fail_msg_body=FAIL_MSG_BODY)
