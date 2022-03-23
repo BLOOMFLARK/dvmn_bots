@@ -48,8 +48,10 @@ def request_user_reviews(params, url, headers, timeout):
     return response.json()
 
 
-def main(chat_id, admin_chat_id, max_retries, tg_token, dvmn_url, headers, timeout,
+def main(chat_id, admin_chat_id, n_retries, tg_token, dvmn_url, headers, timeout,
          sleep_time, msg_header_template, success_msg_body, fail_msg_body):
+
+    bot = telegram.Bot(token=tg_token)
 
     # Присылаем в телеграм админу
     admin_logger.setLevel(logging.DEBUG)
@@ -59,8 +61,6 @@ def main(chat_id, admin_chat_id, max_retries, tg_token, dvmn_url, headers, timeo
     # Логи приложения, не требуют отправки в телеграм
     app_logger.setLevel(logging.DEBUG)
     
-    retries = max_retries
-    bot = telegram.Bot(token=tg_token)
     current_request_timestamp = None
 
     while True:
@@ -80,9 +80,9 @@ def main(chat_id, admin_chat_id, max_retries, tg_token, dvmn_url, headers, timeo
 
         except requests.exceptions.HTTPError as http_error:
             # По KISS принципу просто выведем traceback
-            retries -= 1
-            app_logger.error(f"ERROR: {http_error}, {retries} retries left...")
-            if not retries:
+            n_retries -= 1
+            app_logger.error(f"ERROR: {http_error}, {n_retries} retries left...")
+            if not n_retries:
                 break
             sleep(sleep_time)
 
@@ -112,7 +112,7 @@ def main(chat_id, admin_chat_id, max_retries, tg_token, dvmn_url, headers, timeo
 if __name__ == '__main__':
     main(chat_id=TG_CHAT_ID,
          admin_chat_id=ADMIN_TG_CHAT_ID,
-         max_retries=MAX_RETRIES,
+         n_retries=MAX_RETRIES,
          tg_token=TELEGRAM_BOT_TOKEN,
          sleep_time=SECONDS_TO_SLEEP, 
          msg_header_template=MSG_HEADER_TEMPLATE, 
