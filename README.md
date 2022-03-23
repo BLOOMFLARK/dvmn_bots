@@ -18,5 +18,11 @@ starts infinite loop. Bot sends messages.
 
 ```
 
+## Environment variables
+It's essential to fill in your own env variables. You need to specify:
+ ```- TG_CHAT_ID # which chat to be sent messages
+    - DVMN_TOKEN # devman token to achieve api
+ ```
+
 
 # Other bots are coming soon....
