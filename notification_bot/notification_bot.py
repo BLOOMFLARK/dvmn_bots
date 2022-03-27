@@ -19,7 +19,6 @@ FAIL_MSG_BODY = "К сожалению, в работе нашлись ошиб�
 
 SECONDS_TO_SLEEP = 5
 RESPONSE_TIMEOUT = 30
-MAX_RETRIES = 5
 
 app_logger = logging.getLogger(__file__)
 admin_logger = logging.getLogger('admin')
@@ -48,8 +47,18 @@ def request_user_reviews(params, url, headers, timeout):
     return response.json()
 
 
-def main(chat_id, admin_chat_id, n_retries, tg_token, dvmn_url, headers, timeout,
-         sleep_time, msg_header_template, success_msg_body, fail_msg_body):
+def main():
+    chat_id = TG_CHAT_ID
+    admin_chat_id = ADMIN_TG_CHAT_ID
+    tg_token = TELEGRAM_BOT_TOKEN
+    sleep_time = SECONDS_TO_SLEEP
+    msg_header_template = MSG_HEADER_TEMPLATE
+    success_msg_body = SUCCESS_MSG_BODY
+    dvmn_url = LONG_POLLING_USER_REVIEWS_URL
+    headers = AUTH_HEADER
+    timeout = RESPONSE_TIMEOUT
+    fail_msg_body = FAIL_MSG_BODY
+    n_retries = 5
 
     bot = telegram.Bot(token=tg_token)
 
@@ -110,14 +119,4 @@ def main(chat_id, admin_chat_id, n_retries, tg_token, dvmn_url, headers, timeout
                     app_logger.info(f"Bot send message={msg} to client={chat_id}")
 
 if __name__ == '__main__':
-    main(chat_id=TG_CHAT_ID,
-         admin_chat_id=ADMIN_TG_CHAT_ID,
-         n_retries=MAX_RETRIES,
-         tg_token=TELEGRAM_BOT_TOKEN,
-         sleep_time=SECONDS_TO_SLEEP, 
-         msg_header_template=MSG_HEADER_TEMPLATE, 
-         success_msg_body=SUCCESS_MSG_BODY,
-         dvmn_url=LONG_POLLING_USER_REVIEWS_URL,
-         headers=AUTH_HEADER,
-         timeout=RESPONSE_TIMEOUT,
-         fail_msg_body=FAIL_MSG_BODY)
+    main()
